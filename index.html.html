@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Favourite Things – Login</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg,#fceabb,#f8b500);
+  margin:0;
+  padding:20px;
+}
+.box{
+  max-width:900px;
+  background:#fff;
+  margin:auto;
+  padding:20px;
+  border-radius:15px;
+  box-shadow:0 10px 25px rgba(0,0,0,.2);
+}
+h2{text-align:center;}
+input{
+  width:100%;
+  padding:8px;
+  margin-top:6px;
+  border-radius:8px;
+  border:1px solid #ccc;
+}
+button{
+  width:100%;
+  padding:10px;
+  margin-top:15px;
+  background:#f8b500;
+  border:none;
+  border-radius:8px;
+  font-size:16px;
+}
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px 25px;
+}
+label{font-weight:500;}
+@media(max-width:700px){
+  .grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div class="box" id="loginBox">
+  <h2>🔐 Login / Signup</h2>
+  <input id="email" type="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
+  <button onclick="login()">Login / Signup</button>
+</div>
+
+<!-- FORM -->
+<div class="box" id="formBox" style="display:none;">
+  <h2>💖 Favourite Things</h2>
+  <div class="grid" id="formFields"></div>
+  <button onclick="logout()">Logout</button>
+</div>
+
+<!-- FIREBASE SDKs (ORDER MATTERS) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+/* 🔥 REPLACE WITH YOUR FIREBASE CONFIG */
+const firebaseConfig = {
+  apiKey: "AIzaSyD-kvDCmugkiKK5p-pgWYXGhpuCySrFW7w",
+  authDomain: "fevorite-things.firebaseapp.com",
+  projectId: "fevorite-things",
+  storageBucket: "fevorite-things.firebasestorage.app",
+  messagingSenderId: "107020931792",
+  appId: "1:107020931792:web:9560925a6b2f733aea44d5",
+  measurementId: "G-8R2W1MS503"
+};
+
+/* INITIALIZE FIREBASE */
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+/* SAFE FIELD DEFINITIONS */
+const fields = [
+ {l:"Shape",i:"shape"}, {l:"Game",i:"game"},
+ {l:"Number",i:"number"}, {l:"TV Show",i:"tv_show"},
+ {l:"Letter",i:"letter"}, {l:"Brand",i:"brand"},
+ {l:"Color",i:"color"}, {l:"Outfit",i:"outfit"},
+ {l:"Food",i:"food"}, {l:"Animal",i:"animal"},
+ {l:"Dessert",i:"dessert"}, {l:"Song",i:"song"},
+ {l:"Holiday",i:"holiday"}, {l:"Christmas Song",i:"christmas_song"},
+ {l:"Month",i:"month"}, {l:"Christmas Present",i:"christmas_present"},
+ {l:"Season",i:"season"}, {l:"Toy",i:"toy"},
+ {l:"Day of the Week",i:"day_of_week"}, {l:"Sound",i:"sound"},
+ {l:"Body Part",i:"body_part"}, {l:"Smell",i:"smell"},
+ {l:"Room in the House",i:"room"}, {l:"Taste",i:"taste"},
+ {l:"Dinner",i:"dinner"}, {l:"Perfect Day",i:"perfect_day"},
+ {l:"Breakfast",i:"breakfast"}, {l:"Vacation",i:"vacation"},
+ {l:"Snack",i:"snack"}, {l:"Family Memory",i:"family_memory"},
+ {l:"Ice Cream Flavor",i:"ice_cream"},
+ {l:"City",i:"city"}, {l:"Vegetable",i:"vegetable"},
+ {l:"Car",i:"car"}, {l:"Fruit",i:"fruit"},
+ {l:"Store",i:"store"}, {l:"Pizza Topping",i:"pizza"},
+ {l:"Job",i:"job"}, {l:"Book",i:"book"},
+ {l:"Singer",i:"singer"}, {l:"Movie",i:"movie"},
+ {l:"Actor / Actress",i:"actor"},
+ {l:"YouTube Channel",i:"youtube"},
+ {l:"Drink",i:"drink"}, {l:"Subject in School",i:"subject"},
+ {l:"Cereal",i:"cereal"}, {l:"Teacher",i:"teacher"},
+ {l:"Summer Activity",i:"summer"},
+ {l:"Flower",i:"flower"}, {l:"Time of Day",i:"time"},
+ {l:"Snow Day Activity",i:"snow"},
+ {l:"Superhero",i:"superhero"},
+ {l:"Dog Breed",i:"dog"},
+ {l:"Popsicle Flavor",i:"popsicle"},
+ {l:"Restaurant",i:"restaurant"},
+ {l:"Rainy Day Activity",i:"rainy"},
+ {l:"Amusement Park Ride",i:"ride"},
+ {l:"Candy",i:"candy"}
+];
+
+/* BUILD FORM */
+const form = document.getElementById("formFields");
+fields.forEach(f=>{
+  form.innerHTML += `<label>${f.l}<input id="${f.i}"></label>`;
+});
+
+/* LOGIN */
+function login(){
+  auth.signInWithEmailAndPassword(email.value, password.value)
+  .catch(()=>{
+    auth.createUserWithEmailAndPassword(email.value, password.value)
+    .catch(e=>alert(e.message));
+  });
+}
+
+/* AUTH STATE */
+auth.onAuthStateChanged(user=>{
+  if(user){
+    loginBox.style.display="none";
+    formBox.style.display="block";
+
+    const doc = db.collection("favorites").doc(user.uid);
+
+    doc.onSnapshot(snap=>{
+      if(snap.exists){
+        fields.forEach(f=>{
+          document.getElementById(f.i).value = snap.data()[f.i] || "";
+        });
+      }
+    });
+
+    fields.forEach(f=>{
+      document.getElementById(f.i).addEventListener("input",()=>{
+        doc.set({[f.i]:document.getElementById(f.i).value},{merge:true});
+      });
+    });
+  }
+});
+
+/* LOGOUT */
+function logout(){
+  auth.signOut().then(()=>location.reload());
+}
+</script>
+
+</body>
+</html>
